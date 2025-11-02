@@ -2,15 +2,55 @@
 
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchPatients, addPatient, updatePatient, deletePatient } from "@/redux/patientsSlice";
+import {
+  fetchPatients,
+  addPatient,
+  updatePatient,
+  deletePatient,
+  togglePatient,
+} from "@/redux/patientsSlice";
 import {
   Button,
   Modal,
   Typography,
+  Box,
+  ThemeProvider,
+  createTheme,
+  CssBaseline,
 } from "@mui/material";
 import PatientForm from "@/components/PatientForm";
 import PatientTable from "@/components/PatientTable";
 import LoadingSpinner from "@/components/Loading";
+
+const theme = createTheme({
+  direction: "rtl",
+  typography: {
+    fontFamily: "vazir, sans-serif",
+  },
+  components: {
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          fontFamily: "vazir, sans-serif",
+        },
+      },
+    },
+    MuiTypography: {
+      styleOverrides: {
+        root: {
+          fontFamily: "vazir, sans-serif",
+        },
+      },
+    },
+    MuiTextField: {
+      styleOverrides: {
+        root: {
+          fontFamily: "vazir, sans-serif",
+        },
+      },
+    },
+  },
+});
 
 export default function PatientManagement() {
   const dispatch = useDispatch();
@@ -18,18 +58,18 @@ export default function PatientManagement() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPatient, setEditingPatient] = useState(null);
-  const [formData, setFormData] = useState({ 
-    name: "", 
-    dateOfBirth: "", 
-    email: "" 
+  const [formData, setFormData] = useState({
+    name: "",
+    dateOfBirth: "",
+    email: "",
   });
 
-  // Fetch patients on component mount
+  // 🧩 Fetch patients on mount
   useEffect(() => {
     dispatch(fetchPatients());
   }, [dispatch]);
 
-  // Update form when editing patient
+  // 🧩 Prefill form when editing
   useEffect(() => {
     if (editingPatient) {
       setFormData({
@@ -42,26 +82,29 @@ export default function PatientManagement() {
   }, [editingPatient]);
 
   const handleFormChange = (e) => {
-    setFormData({ 
-      ...formData, 
-      [e.target.name]: e.target.value 
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
     });
   };
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
-    
+
     try {
       if (editingPatient) {
-        await dispatch(updatePatient({ 
-          id: editingPatient.id, 
-          patientData: formData 
-        }));
+        await dispatch(
+          updatePatient({
+            id: editingPatient.id,
+            patientData: formData,
+          })
+        );
         setEditingPatient(null);
       } else {
         await dispatch(addPatient(formData));
+        await dispatch(fetchPatients());
       }
-      
+
       resetForm();
       setIsModalOpen(false);
     } catch (error) {
@@ -69,9 +112,7 @@ export default function PatientManagement() {
     }
   };
 
-  const handleEdit = (patient) => {
-    setEditingPatient(patient);
-  };
+  const handleEdit = (patient) => setEditingPatient(patient);
 
   const handleDelete = async (id) => {
     if (confirm("آیا از حذف این بیمار مطمئن هستید؟")) {
@@ -85,6 +126,10 @@ export default function PatientManagement() {
     setIsModalOpen(true);
   };
 
+  const handleToggle = async (id) => {
+    await dispatch(togglePatient(id));
+  };
+
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingPatient(null);
@@ -96,49 +141,52 @@ export default function PatientManagement() {
   };
 
   return (
-    <div className="p-6">
-      <Typography 
-        variant="h5" 
-        gutterBottom 
-        sx={{ fontFamily: "vazir,sans-serif" }}
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Box
+        dir="rtl"
+        sx={{
+          p: 6,
+          textAlign: "right",
+          fontFamily: "vazir, sans-serif",
+        }}
       >
-        مدیریت بیماران
-      </Typography>
+        <Typography variant="h5" gutterBottom>
+          مدیریت بیماران
+        </Typography>
 
-      <div className="flex justify-end mb-4">
-        <Button 
-          sx={{ fontFamily: "vazir,sans-serif" }} 
-          variant="contained" 
-          color="primary" 
-          onClick={handleAddNew}
-        >
-          افزودن بیمار جدید
-        </Button>
-      </div>
+        <Box sx={{ display: "flex", justifyContent: "flex-start", mb: 3 }}>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleAddNew}
+            sx={{ fontFamily: "vazir, sans-serif" }}
+          >
+            افزودن بیمار جدید
+          </Button>
+        </Box>
 
-      {loading ? (
-        <LoadingSpinner />
-      ) : (
-        <PatientTable
-          patients={patients}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-        />
-      )}
+        {loading ? (
+          <LoadingSpinner />
+        ) : (
+          <PatientTable
+            patients={patients}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            onToggle={handleToggle}
+          />
+        )}
 
-      <Modal
-        open={isModalOpen}
-        onClose={handleCloseModal}
-        aria-labelledby="patient-form-modal"
-      >
-        <PatientForm
-          editingPatient={editingPatient}
-          form={formData}
-          onFormChange={handleFormChange}
-          onFormSubmit={handleFormSubmit}
-          onClose={handleCloseModal}
-        />
-      </Modal>
-    </div>
+        <Modal open={isModalOpen} onClose={handleCloseModal}>
+          <PatientForm
+            editingPatient={editingPatient}
+            form={formData}
+            onFormChange={handleFormChange}
+            onFormSubmit={handleFormSubmit}
+            onClose={handleCloseModal}
+          />
+        </Modal>
+      </Box>
+    </ThemeProvider>
   );
 }
