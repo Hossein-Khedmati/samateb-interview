@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@mui/material";
 import api from "../lib/axios";
@@ -8,6 +8,13 @@ import api from "../lib/axios";
 export default function Home() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const token = document.cookie.match(/token=([^;]+)/);
+    if (token) {
+      router.push("/dashboard");
+    }
+  }, [router]);
 
   const handleLogin = async () => {
     try {
