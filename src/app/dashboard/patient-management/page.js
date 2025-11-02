@@ -1,104 +1,200 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import api from "@/lib/axios";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchPatients, addPatient, updatePatient, deletePatient } from "@/redux/patientsSlice";
 import {
   Button,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  CircularProgress,
+  Modal,
+  Box,
+  TextField,
   Typography,
-  Box
+  CircularProgress,
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+  Paper,
 } from "@mui/material";
 
 export default function PatientManagement() {
-  const [patients, setPatients] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const dispatch = useDispatch();
+  const { list: patients, loading } = useSelector((state) => state.patients);
 
-  const fetchPatients = async () => {
-    try {
-      setLoading(true);
-      const res = await api.get("/Interview/Patient");
-      console.log("API response:", res.data);
+  const [open, setOpen] = useState(false);
+  const [editingPatient, setEditingPatient] = useState(null);
+  const [form, setForm] = useState({ name: "", dateOfBirth: "", email: "" });
 
-      // بررسی ساختار پاسخ برای جلوگیری از خطا
-      const data =
-        Array.isArray(res.data) ? res.data :
-        Array.isArray(res.data.results) ? res.data.results :
-        Array.isArray(res.data.data) ? res.data.data : [];
+  // گرفتن لیست بیماران
+  useEffect(() => {
+    dispatch(fetchPatients());
+  }, [dispatch]);
 
-      setPatients(data);
-    } catch (error) {
-      console.error("Error fetching patients:", error);
-      if (error.response?.status === 401) {
-        window.location.href = "/";
-      }
-    } finally {
-      setLoading(false);
+  // پر کردن فرم هنگام ویرایش
+  useEffect(() => {
+    if (editingPatient) {
+      setForm({
+        name: editingPatient.name,
+        dateOfBirth: editingPatient.dateOfBirth,
+        email: editingPatient.email,
+      });
+      setOpen(true);
+    }
+  }, [editingPatient]);
+
+  const handleFormChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleFormSubmit = async (e) => {
+    e.preventDefault();
+    if (editingPatient) {
+      // ویرایش
+      await dispatch(updatePatient({ id: editingPatient.id, patientData: form }));
+      setEditingPatient(null);
+    } else {
+      // ایجاد
+      await dispatch(addPatient(form));
+    }
+    setOpen(false);
+    setForm({ name: "", dateOfBirth: "", email: "" });
+  };
+
+  const handleDelete = async (id) => {
+    if (confirm("آیا از حذف این بیمار مطمئن هستید؟")) {
+      await dispatch(deletePatient(id));
     }
   };
 
-  useEffect(() => {
-    fetchPatients();
-  }, []);
-
-  if (loading)
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" height="100%">
-        <CircularProgress />
-      </Box>
-    );
-
   return (
-    <Box p={4}>
-      <Typography variant="h5" fontWeight="bold" mb={3}>
+    <div className="p-6">
+      <Typography variant="h5" gutterBottom>
         مدیریت بیماران
       </Typography>
 
-      <Box display="flex" justifyContent="end" mb={2}>
-        <Button variant="contained" color="primary">
+      <div className="flex justify-end mb-4">
+        <Button variant="contained" color="primary" onClick={() => setOpen(true)}>
           افزودن بیمار جدید
         </Button>
-      </Box>
+      </div>
 
-      {patients.length === 0 ? (
-        <Typography color="text.secondary">هیچ بیماری ثبت نشده است.</Typography>
+      {loading ? (
+        <div className="flex justify-center items-center h-40">
+          <CircularProgress />
+        </div>
       ) : (
-        <TableContainer component={Paper}>
+        <Paper sx={{ width: "100%", overflow: "hidden" }}>
           <Table>
             <TableHead>
               <TableRow>
                 <TableCell>#</TableCell>
                 <TableCell>نام</TableCell>
-                <TableCell>کد ملی</TableCell>
+                <TableCell>تاریخ تولد</TableCell>
+                <TableCell>ایمیل</TableCell>
                 <TableCell align="center">عملیات</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {patients.map((p, i) => (
-                <TableRow key={p.id || i}>
-                  <TableCell>{i + 1}</TableCell>
-                  <TableCell>{p.name || "—"}</TableCell>
-                  <TableCell>{p.nationalCode || "—"}</TableCell>
-                  <TableCell align="center">
-                    <Button size="small" variant="outlined" color="warning" sx={{ mr: 1 }}>
-                      ویرایش
-                    </Button>
-                    <Button size="small" variant="outlined" color="error">
-                      حذف
-                    </Button>
+              {patients?.length > 0 ? (
+                patients.map((p, i) => (
+                  <TableRow key={p.id || i}>
+                    <TableCell>{i + 1}</TableCell>
+                    <TableCell>{p.name}</TableCell>
+                    <TableCell>{p.dateOfBirth}</TableCell>
+                    <TableCell>{p.email}</TableCell>
+                    <TableCell align="center">
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        color="warning"
+                        sx={{ mr: 1 }}
+                        onClick={() => setEditingPatient(p)}
+                      >
+                        ویرایش
+                      </Button>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        color="error"
+                        onClick={() => handleDelete(p.id)}
+                      >
+                        حذف
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={5} align="center">
+                    هیچ بیماری یافت نشد
                   </TableCell>
                 </TableRow>
-              ))}
+              )}
             </TableBody>
           </Table>
-        </TableContainer>
+        </Paper>
       )}
-    </Box>
+
+      {/* Modal فرم ایجاد / ویرایش */}
+      <Modal
+        open={open}
+        onClose={() => {
+          setOpen(false);
+          setEditingPatient(null);
+        }}
+      >
+        <Box
+          component="form"
+          onSubmit={handleFormSubmit}
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 400,
+            bgcolor: "background.paper",
+            boxShadow: 24,
+            p: 4,
+            borderRadius: 2,
+          }}
+        >
+          <Typography variant="h6" mb={2}>
+            {editingPatient ? "ویرایش بیمار" : "افزودن بیمار جدید"}
+          </Typography>
+
+          <TextField
+            fullWidth
+            name="name"
+            label="نام"
+            value={form.name}
+            onChange={handleFormChange}
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            fullWidth
+            name="dateOfBirth"
+            label="تاریخ تولد"
+            type="date"
+            InputLabelProps={{ shrink: true }}
+            value={form.dateOfBirth}
+            onChange={handleFormChange}
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            fullWidth
+            name="email"
+            label="ایمیل"
+            value={form.email}
+            onChange={handleFormChange}
+            sx={{ mb: 3 }}
+          />
+
+          <Button type="submit" fullWidth variant="contained" color="primary">
+            {editingPatient ? "ویرایش" : "ثبت"}
+          </Button>
+        </Box>
+      </Modal>
+    </div>
   );
 }

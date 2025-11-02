@@ -12,17 +12,9 @@ export default function Home() {
   const handleLogin = async () => {
     try {
       setLoading(true);
-
-      // GET request to get JWT
-      const res = await api.get("/Interview/Auth"); // فرض می‌کنیم API JWT را می‌دهد
+      const res = await api.get("/Interview/Auth");
       const token = res.data.result.credential;
-
-      // ذخیره JWT در کوکی بدون پکیج اضافی
-      document.cookie = `token=${token}; path=/; max-age=${60 * 60 * 24}`; // 1 روز اعتبار
-
-      // هدر Authorization برای درخواست‌های بعدی به صورت خودکار اضافه می‌شود توسط lib/axios.js
-
-      // ریدایرکت به داشبورد
+      document.cookie = `token=${token}; path=/; max-age=${7 * 60 * 60 * 24}`;
       router.push("/dashboard");
     } catch (error) {
       console.error("Login failed:", error);
@@ -34,9 +26,14 @@ export default function Home() {
 
   return (
     <div className="flex flex-col items-center justify-center h-screen rtl">
-      <h1 className="text-3xl mb-4">خوش آمدید!</h1>
-      <Button  variant="contained" onClick={handleLogin} disabled={loading}>
-        {loading ? "در حال ورود..." : "ورود"}
+      <h1 className="text-5xl mb-10">خوش آمدید!</h1>
+      <Button
+        variant="contained"
+        onClick={handleLogin}
+        disabled={loading}
+        sx={{ fontFamily: "vazir,sans-serif" }}
+      >
+        {loading ? "در حال ورود..." : "برای ورود کلیک کنید"}
       </Button>
     </div>
   );

@@ -1,20 +1,26 @@
+/* app/globals.css */
 @import "tailwindcss";
 
 @font-face {
-  font-family: vazir;
-  src: url(/Fonts/Vazirmatn-Medium.eot);
-  src: url(/Fonts/Vazirmatn-Medium.woff2);
-  src: url(/Fonts/Vazirmatn-Medium.woff);
-  src: url(/Fonts/Vazirmatn-Medium.ttf);
+  font-family: "vazir";
+  src: url("/Fonts/Vazirmatn-Medium.eot");
+  src: url("/Fonts/Vazirmatn-Medium.eot?#iefix") format("embedded-opentype"),
+    url("/Fonts/Vazirmatn-Medium.woff2") format("woff2"),
+    url("/Fonts/Vazirmatn-Medium.woff") format("woff"),
+    url("/Fonts/Vazirmatn-Medium.ttf") format("truetype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
 }
 
 :root {
   --background: #ffffff;
-  /* --foreground: #171717; */
 }
 
 body {
   background: var(--background);
-  color: var(--foreground);
-  font-family: vazir , sans-serif;
+  font-family: "vazir", sans-serif;
+}
+.vazir-font {
+  font-family: "vazir", sans-serif;
 }
