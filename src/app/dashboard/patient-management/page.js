@@ -6,59 +6,71 @@ import { fetchPatients, addPatient, updatePatient, deletePatient } from "@/redux
 import {
   Button,
   Modal,
-  Box,
-  TextField,
   Typography,
-  CircularProgress,
-  Table,
-  TableHead,
-  TableBody,
-  TableRow,
-  TableCell,
-  Paper,
 } from "@mui/material";
+import PatientForm from "@/components/PatientForm";
+import PatientTable from "@/components/PatientTable";
+import LoadingSpinner from "@/components/Loading";
 
 export default function PatientManagement() {
   const dispatch = useDispatch();
   const { list: patients, loading } = useSelector((state) => state.patients);
 
-  const [open, setOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPatient, setEditingPatient] = useState(null);
-  const [form, setForm] = useState({ name: "", dateOfBirth: "", email: "" });
+  const [formData, setFormData] = useState({ 
+    name: "", 
+    dateOfBirth: "", 
+    email: "" 
+  });
 
-  // گرفتن لیست بیماران
+  // Fetch patients on component mount
   useEffect(() => {
     dispatch(fetchPatients());
   }, [dispatch]);
 
-  // پر کردن فرم هنگام ویرایش
+  // Update form when editing patient
   useEffect(() => {
     if (editingPatient) {
-      setForm({
+      setFormData({
         name: editingPatient.name,
         dateOfBirth: editingPatient.dateOfBirth,
         email: editingPatient.email,
       });
-      setOpen(true);
+      setIsModalOpen(true);
     }
   }, [editingPatient]);
 
   const handleFormChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    setFormData({ 
+      ...formData, 
+      [e.target.name]: e.target.value 
+    });
   };
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
-    if (editingPatient) {
-      // ویرایش
-      await dispatch(updatePatient({ id: editingPatient.id, patientData: form }));
-      setEditingPatient(null);
-    } else {
-      // ایجاد
-      await dispatch(addPatient(form));
+    
+    try {
+      if (editingPatient) {
+        await dispatch(updatePatient({ 
+          id: editingPatient.id, 
+          patientData: formData 
+        }));
+        setEditingPatient(null);
+      } else {
+        await dispatch(addPatient(formData));
+      }
+      
+      resetForm();
+      setIsModalOpen(false);
+    } catch (error) {
+      console.error("Error saving patient:", error);
     }
-    setOpen(false);
-    setForm({ name: "", dateOfBirth: "", email: "" });
+  };
+
+  const handleEdit = (patient) => {
+    setEditingPatient(patient);
   };
 
   const handleDelete = async (id) => {
@@ -67,133 +79,65 @@ export default function PatientManagement() {
     }
   };
 
+  const handleAddNew = () => {
+    setEditingPatient(null);
+    setFormData({ name: "", dateOfBirth: "", email: "" });
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingPatient(null);
+    resetForm();
+  };
+
+  const resetForm = () => {
+    setFormData({ name: "", dateOfBirth: "", email: "" });
+  };
+
   return (
     <div className="p-6">
-      <Typography variant="h5" gutterBottom>
+      <Typography 
+        variant="h5" 
+        gutterBottom 
+        sx={{ fontFamily: "vazir,sans-serif" }}
+      >
         مدیریت بیماران
       </Typography>
 
       <div className="flex justify-end mb-4">
-        <Button variant="contained" color="primary" onClick={() => setOpen(true)}>
+        <Button 
+          sx={{ fontFamily: "vazir,sans-serif" }} 
+          variant="contained" 
+          color="primary" 
+          onClick={handleAddNew}
+        >
           افزودن بیمار جدید
         </Button>
       </div>
 
       {loading ? (
-        <div className="flex justify-center items-center h-40">
-          <CircularProgress />
-        </div>
+        <LoadingSpinner />
       ) : (
-        <Paper sx={{ width: "100%", overflow: "hidden" }}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>#</TableCell>
-                <TableCell>نام</TableCell>
-                <TableCell>تاریخ تولد</TableCell>
-                <TableCell>ایمیل</TableCell>
-                <TableCell align="center">عملیات</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {patients?.length > 0 ? (
-                patients.map((p, i) => (
-                  <TableRow key={p.id || i}>
-                    <TableCell>{i + 1}</TableCell>
-                    <TableCell>{p.name}</TableCell>
-                    <TableCell>{p.dateOfBirth}</TableCell>
-                    <TableCell>{p.email}</TableCell>
-                    <TableCell align="center">
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        color="warning"
-                        sx={{ mr: 1 }}
-                        onClick={() => setEditingPatient(p)}
-                      >
-                        ویرایش
-                      </Button>
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        color="error"
-                        onClick={() => handleDelete(p.id)}
-                      >
-                        حذف
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={5} align="center">
-                    هیچ بیماری یافت نشد
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </Paper>
+        <PatientTable
+          patients={patients}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+        />
       )}
 
-      {/* Modal فرم ایجاد / ویرایش */}
       <Modal
-        open={open}
-        onClose={() => {
-          setOpen(false);
-          setEditingPatient(null);
-        }}
+        open={isModalOpen}
+        onClose={handleCloseModal}
+        aria-labelledby="patient-form-modal"
       >
-        <Box
-          component="form"
-          onSubmit={handleFormSubmit}
-          sx={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            width: 400,
-            bgcolor: "background.paper",
-            boxShadow: 24,
-            p: 4,
-            borderRadius: 2,
-          }}
-        >
-          <Typography variant="h6" mb={2}>
-            {editingPatient ? "ویرایش بیمار" : "افزودن بیمار جدید"}
-          </Typography>
-
-          <TextField
-            fullWidth
-            name="name"
-            label="نام"
-            value={form.name}
-            onChange={handleFormChange}
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            fullWidth
-            name="dateOfBirth"
-            label="تاریخ تولد"
-            type="date"
-            InputLabelProps={{ shrink: true }}
-            value={form.dateOfBirth}
-            onChange={handleFormChange}
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            fullWidth
-            name="email"
-            label="ایمیل"
-            value={form.email}
-            onChange={handleFormChange}
-            sx={{ mb: 3 }}
-          />
-
-          <Button type="submit" fullWidth variant="contained" color="primary">
-            {editingPatient ? "ویرایش" : "ثبت"}
-          </Button>
-        </Box>
+        <PatientForm
+          editingPatient={editingPatient}
+          form={formData}
+          onFormChange={handleFormChange}
+          onFormSubmit={handleFormSubmit}
+          onClose={handleCloseModal}
+        />
       </Modal>
     </div>
   );

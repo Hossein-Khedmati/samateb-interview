@@ -40,6 +40,7 @@ const patientsSlice = createSlice({
   reducers: {},
   extraReducers: (builder) => {
     builder
+    //fetching patients
       .addCase(fetchPatients.pending, (state) => {
         state.loading = true;
       })
@@ -50,6 +51,7 @@ const patientsSlice = createSlice({
       .addCase(fetchPatients.rejected, (state) => {
         state.loading = false;
       })
+      //adding patients
       .addCase(addPatient.fulfilled, (state, action) => {
         if (action.payload) {
           state.list.push(action.payload);
